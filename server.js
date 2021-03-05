@@ -9,6 +9,8 @@ const path = require('path');
 const jwt = require ('jsonwebtoken');
 const {config} = require ('./config');
 
+dotenv.config();
+
 const getToken = (user) => {
     return jwt.sign({
         id: user.id,
@@ -40,8 +42,6 @@ const isAuth = (req, res, next, user) => {
         return res.status(401).send({msg: 'Token was not supplied' })
     }
 }
-
-dotenv.config();
 
 app.use(express.static(path.join(__dirname, "build")));
 app.use(bodyParser.urlencoded({extended : true}));
