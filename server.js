@@ -1,6 +1,5 @@
 const express = require('express');
 const dotenv = require('dotenv');
-const bodyParser = require('body-parser');
 const pool = require('./db');
 const PORT = process.env.PORT || 5000;
 const app = express();
@@ -8,6 +7,8 @@ const cors = require('cors');
 const path = require('path');
 const jwt = require ('jsonwebtoken');
 const {config} = require ('./config');
+const {hasher} = require ('./helpers');
+const bodyParser = require('body-parser');
 
 dotenv.config();
 
@@ -43,13 +44,14 @@ const isAuth = (req, res, next, user) => {
     }
 }
 
+
 app.use(express.static(path.join(__dirname, "build")));
 app.use(bodyParser.urlencoded({extended : true}));
 app.use(bodyParser.json());
 app.use(cors());
 
 
-app.get('/users/:id', async (req, res) => {
+app.get('/users/:id', isAuth, async (req, res) => {
     const item = await pool.query(`select name, email, goal from users where id = '${req.params.id}'`);
     res.send(item.rows);
 });
@@ -61,9 +63,9 @@ app.post('/users/:id/changeGoal', isAuth, async (req, res) => {
 
 app.post('/register', async (req, res) => {
     try {
-        const success = await pool.query(`insert into users(name, email, password) values('${req.body.name}', '${req.body.email}', '${req.body.password}');`);
+        const success = await pool.query(`insert into users(name, email, password) values('${req.body.name}', '${req.body.email}', '${hasher(req.body.password)}');`);
         if (success) {
-            loginUser = await pool.query(`select id, name, email, isAdmin, goal from users where email ='${req.body.email}' and password ='${req.body.password}';`);
+            loginUser = await pool.query(`select id, name, email, isAdmin, goal from users where email ='${req.body.email}' and password ='${hasher(req.body.password)}';`);
             res.send({
                 id: loginUser.rows[0].id,
                 name: loginUser.rows[0].name,
@@ -80,7 +82,7 @@ app.post('/register', async (req, res) => {
 });
 
 app.post('/login', async (req, res) => {
-    const loginUser = await pool.query(`select id, name, email, isAdmin, goal from users where email ='${req.body.email}' and password ='${req.body.password}';`);
+    const loginUser = await pool.query(`select id, name, email, isAdmin, goal from users where email ='${req.body.email}' and password ='${hasher(req.body.password)}';`);
     if (loginUser.rows[0]) {
         res.send({
             id: loginUser.rows[0].id,
